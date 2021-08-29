@@ -8,9 +8,9 @@
 #define NE 3  //numero de escritores
 #define NL 10 //numero de leitores
 
-pthread_mutex_t lock_bd = PTHREAD_MUTEX_INITIALIZER;
-pthread_mutex_t lock_nl = PTHREAD_MUTEX_INITIALIZER;
-pthread_mutex_t lock_threads = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t lock_bd = PTHREAD_MUTEX_INITIALIZER;	// mutex do bd
+pthread_mutex_t lock_nl = PTHREAD_MUTEX_INITIALIZER;	// mutex dos leitores
+pthread_mutex_t lock_turns = PTHREAD_MUTEX_INITIALIZER; // mutex dos turnos
 
 int num_leitores = 0;
 
@@ -27,7 +27,7 @@ int main()
 	int i;
 	int *id;
 
-	/* criando leitores */
+	// cria leitores
 	for (i = 0; i < NL; i++)
 	{
 		id = (int *)malloc(sizeof(int));
@@ -35,7 +35,7 @@ int main()
 		pthread_create(&r[i], NULL, reader, (void *)(id));
 	}
 
-	/* criando escritores */
+	// cria escritores
 	for (i = 0; i < NE; i++)
 	{
 		id = (int *)malloc(sizeof(int));
@@ -49,18 +49,17 @@ int main()
 void *reader(void *arg)
 {
 	int i = *((int *)arg);
-	while (TRUE) // repete para sempre
+	while (TRUE)
 	{
-
-		pthread_mutex_lock(&lock_threads); // da lock nos threads
-		pthread_mutex_lock(&lock_nl);	   // da lock nos leitores
-		num_leitores++;					   // incrementa o numero de leitores
-		if (num_leitores == 1)			   // se tiver apenas um leitor acessando, da lock no bd
+		pthread_mutex_lock(&lock_turns); // da lock nos turnos
+		pthread_mutex_lock(&lock_nl);	 // da lock nos leitores
+		num_leitores++;					 // incrementa o numero de leitores
+		if (num_leitores == 1)			 // se tiver apenas um leitor acessando, da lock no bd
 		{
 			pthread_mutex_lock(&lock_bd); // da lock no bd
 		}
-		pthread_mutex_unlock(&lock_threads); // da unlock nos threads
-		pthread_mutex_unlock(&lock_nl);		 // da unlock nos leitores
+		pthread_mutex_unlock(&lock_nl);	   // da unlock nos leitores
+		pthread_mutex_unlock(&lock_turns); // da unlock nos turnos
 
 		read_data_base(i); // acessa os dados
 
@@ -71,7 +70,7 @@ void *reader(void *arg)
 			pthread_mutex_unlock(&lock_bd); // da unlock no bd
 		}
 		pthread_mutex_unlock(&lock_nl); // da unlock nos leitores
-		use_data_read(i);				// regiao nao critica
+		use_data_read(i);				// usa os dados lidos (regiao nao critica)
 	}
 	pthread_exit(0);
 }
@@ -79,38 +78,38 @@ void *reader(void *arg)
 void *writer(void *arg)
 {
 	int i = *((int *)arg);
-	while (TRUE) /* repete para sempre */
+	while (TRUE)
 	{
-		think_up_data(i); /* região não crítica */
-		pthread_mutex_lock(&lock_threads);
-		pthread_mutex_lock(&lock_bd);
-		write_data_base(i); /* atualiza os dados */
-		pthread_mutex_unlock(&lock_threads);
-		pthread_mutex_unlock(&lock_bd);
+		think_up_data(i);				   // pensa no que escrever (regiao nao critica)
+		pthread_mutex_lock(&lock_turns);   // da lock nos turnos
+		pthread_mutex_lock(&lock_bd);	   // da lock no bd
+		write_data_base(i);				   // escreve no bd
+		pthread_mutex_unlock(&lock_bd);	   // da unlock no bd
+		pthread_mutex_unlock(&lock_turns); // da unlock nos turnos
 	}
 	pthread_exit(0);
 }
 
 void read_data_base(int i)
 {
-	printf("Leitor %d está lendo os dados! Número de leitores: %d\n", i, num_leitores);
-	sleep(rand() % 5);
+	printf("LEITOR[%d] >> LENDO\n", i);
+	sleep(2);
 }
 
 void use_data_read(int i)
 {
-	printf("Leitor %d está usando os dados lidos! Número de leitores: %d\n", i, num_leitores);
-	sleep(rand() % 5);
+	printf("LEITOR[%d] >> USANDO\n", i);
+	sleep(1);
 }
 
 void think_up_data(int i)
 {
-	printf("Escritor %d está pensando no que escrever!\n", i);
-	sleep(rand() % 5);
+	printf("ESCRITOR[%d] >> PENSANDO\n", i);
+	sleep(1);
 }
 
 void write_data_base(int i)
 {
-	printf("Escritor %d está escrevendo os dados! Número de leitores: %d\n", i, num_leitores);
-	sleep(rand() % 5 + 15);
+	printf("ESCRITOR[%d] >> ESCREVENDO\n", i);
+	sleep(4);
 }
