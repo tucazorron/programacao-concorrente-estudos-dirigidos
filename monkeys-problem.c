@@ -3,122 +3,136 @@
 #include <unistd.h>
 #include <pthread.h>
 
-#define TRUE 1
-#define MA 10 // macacos de A para B
-#define MB 10 // macacos de B para A
+#define TRUE 1 // define true
+#define MA 10  // macacos de a para b
+#define MB 10  // macacos de b para a
 
-pthread_mutex_t lock_ab;
-pthread_mutex_t lock_ba;
-pthread_mutex_t lock_rope;
-pthread_mutex_t lock_turn;
+pthread_mutex_t lock_ab = PTHREAD_MUTEX_INITIALIZER;   // mutex de a para b
+pthread_mutex_t lock_ba = PTHREAD_MUTEX_INITIALIZER;   // mutex de b para a
+pthread_mutex_t lock_rope = PTHREAD_MUTEX_INITIALIZER; // mutex da corda
+pthread_mutex_t lock_turn = PTHREAD_MUTEX_INITIALIZER; // mutex dos turnos
 
-int ab = 0;
-int ba = 0;
+int ab = 0; // macacos atravessando de a para b
+int ba = 0; // macacos atravessando de b para a
 
 void *monkey_ab(void *a)
 {
-	int i = *((int *)a);
-	while (TRUE)
-	{
-		// acessa a corda
-		pthread_mutex_lock(&lock_turn);
-		pthread_mutex_lock(&lock_ab);
-		ab++;
-		if (ab == 1)
-		{
-			pthread_mutex_lock(&lock_rope);
-		}
-		pthread_mutex_unlock(&lock_ab);
-		pthread_mutex_unlock(&lock_turn);
-		printf("MACACO[%02d]  >>  ATRAVESSANDO  >>  A => B\n", i);
-		sleep(2);
+	int i = *((int *)a); // recebe id do macaco
 
-		// sai da corda
-		pthread_mutex_lock(&lock_ab);
-		ab--;
-		printf("MACACO[%02d]  >>  CHEGOU  >>  B\n", i);
-		sleep(1);
-		if (ab == 0)
+	while (TRUE) // loop infinito
+	{
+		pthread_mutex_lock(&lock_turn); // da lock no turno
+		pthread_mutex_lock(&lock_ab);	// da lock de a para b
+
+		ab++;		 // incrementa o numero de macacos de a para b
+		if (ab == 1) // se for o primeiro macaco, da lock na corda
 		{
-			printf("--\nCORDA LIVRE\n--\n");
-			sleep(1);
-			pthread_mutex_unlock(&lock_rope);
+			pthread_mutex_lock(&lock_rope); // da lock na corda
 		}
-		pthread_mutex_unlock(&lock_ab);
+
+		pthread_mutex_unlock(&lock_ab);	  // da unlock de a para b
+		pthread_mutex_unlock(&lock_turn); // da unlock no turno
+
+		printf("MACACO[%02d]  |  ATRAVESSANDO  |  A => B\n", i); // escreve na tela qual macaco esta atravessando de a para b
+		sleep(2);												 // trava a tela por 2 segundos
+
+		printf("MACACO[%02d]  |  CHEGOU        |  B\n", i); // escreve na tela qual macaco chegou em b
+		sleep(1);											// trava a tela por 1 segundo
+
+		pthread_mutex_lock(&lock_ab); // da lock de a para b
+
+		ab--;		 // diminui o numero de macacos atravessando de a para b
+		if (ab == 0) // se nao tiver mais macacos atravessando de a para b, libera a corda
+		{
+			printf("--\nCORDA LIVRE\n--\n"); // escreve na tela que a corda esta livre
+			sleep(1);						 // trava a tela por 1 segundo
+
+			pthread_mutex_unlock(&lock_rope); // da unlock na corda
+		}
+		pthread_mutex_unlock(&lock_ab); // da unlock de a para b
 	}
 	pthread_exit(0);
 }
 
 void *monkey_ba(void *a)
 {
-	int i = *((int *)a);
-	while (TRUE)
-	{
-		// acessa a corda
-		pthread_mutex_lock(&lock_turn);
-		pthread_mutex_lock(&lock_ba);
-		ba++;
-		if (ba == 1)
-		{
-			pthread_mutex_lock(&lock_rope);
-		}
-		pthread_mutex_unlock(&lock_ba);
-		pthread_mutex_unlock(&lock_turn);
-		printf("MACACO[%02d]  >>  ATRAVESSANDO  >>  B => A\n", i);
-		sleep(2);
+	int i = *((int *)a); // recebe id do macaco
 
-		// sai da corda
-		pthread_mutex_lock(&lock_ba);
-		ba--;
-		printf("MACACO[%02d]  >>  CHEGOU  >>  A\n", i);
-		sleep(1);
-		if (ba == 0)
+	while (TRUE) // loop infinito
+	{
+		pthread_mutex_lock(&lock_turn); // da lock no turno
+		pthread_mutex_lock(&lock_ba);	// da lock de b para a
+
+		ba++;		 // incrementa o numero de macacos de b para a
+		if (ba == 1) // se for o primeiro macaco, da lock na corda
 		{
-			printf("--\nCORDA LIVRE\n--\n");
-			sleep(1);
-			pthread_mutex_unlock(&lock_rope);
+			pthread_mutex_lock(&lock_rope); // da lock na corda
 		}
-		pthread_mutex_unlock(&lock_ba);
+
+		pthread_mutex_unlock(&lock_ba);	  // da unlock de b para a
+		pthread_mutex_unlock(&lock_turn); // da unlock no turno
+
+		printf("MACACO[%02d]  |  ATRAVESSANDO  |  B => A\n", i); // escreve na tela qual macaco esta atravessando de b para a
+		sleep(2);												 // trava a tela por 2 segundos
+
+		printf("MACACO[%02d]  |  CHEGOU        |  A\n", i); // escreve na tela qual macaco chegou em a
+		sleep(1);											// trava a tela por 1 segundo
+
+		pthread_mutex_lock(&lock_ba); // da lock de b para a
+
+		ba--;		 // diminui o numero de macacos atravessando de b para a
+		if (ba == 0) // se nao tiver mais macacos atravessando de b para a, libera a corda
+		{
+			printf("--\nCORDA LIVRE\n--\n"); // escreve na tela que a corda esta livre
+			sleep(1);						 // trava a tela por 1 segundo
+
+			pthread_mutex_unlock(&lock_rope); // da unlock na corda
+		}
+		pthread_mutex_unlock(&lock_ba); // da unlock de b para a
 	}
 	pthread_exit(0);
 }
 
 void *gorilla_ab(void *a)
 {
-	while (TRUE)
+	while (TRUE) // loop infinito
 	{
-		//Procedimentos para acessar a corda
-		pthread_mutex_lock(&lock_turn);
-		pthread_mutex_lock(&lock_rope);
-		printf("GORILA  >>  ATRAVESSANDO  >> A => B\n");
-		sleep(4);
-		printf("GORILA  >>  CHEGOU  >>  B\n");
-		sleep(1);
-		//Procedimentos para quando sair da corda
-		printf("--\nCORDA LIVRE\n--\n");
-		sleep(1);
-		pthread_mutex_unlock(&lock_rope);
-		pthread_mutex_unlock(&lock_turn);
+		pthread_mutex_lock(&lock_turn); // da lock no turno
+		pthread_mutex_lock(&lock_rope); // da lock na corda
+
+		printf("GORILA      |  ATRAVESSANDO  |  A => B\n"); // escreve na tela que gorila esta atravessando de a para b
+		sleep(4);											// trava a tela por 4 segundos
+
+		printf("GORILA      |  CHEGOU        |  B\n"); // escreve na tela que gorila chegou em b
+		sleep(1);									   // trava a tela por 1 segundo
+
+		printf("--\nCORDA LIVRE\n--\n"); // escreve na tela que a corda esta livre
+		sleep(1);						 // trava a tela por 1 segundo
+
+		pthread_mutex_unlock(&lock_rope); // da unlock na corda
+		pthread_mutex_unlock(&lock_turn); // da unlock no turno
 	}
 	pthread_exit(0);
 }
 
 void *gorilla_ba(void *a)
 {
-	while (TRUE)
+	while (TRUE) // loop infinito
 	{
-		//Procedimentos para acessar a corda
-		pthread_mutex_lock(&lock_turn);
-		pthread_mutex_lock(&lock_rope);
-		printf("GORILA  >>  ATRAVESSANDO  >>  B => A\n");
-		sleep(4);
-		printf("GORILA  >>  CHEGOU  >> A\n");
-		sleep(1);
-		//Procedimentos para quando sair da corda
-		printf("--\nCORDA LIVRE\n--\n");
-		sleep(1);
-		pthread_mutex_unlock(&lock_rope);
-		pthread_mutex_unlock(&lock_turn);
+		pthread_mutex_lock(&lock_turn); // da lock no turno
+		pthread_mutex_lock(&lock_rope); // da lock na corda
+
+		printf("GORILA      |  ATRAVESSANDO  |  B => A\n"); // escreve na tela que gorila esta atravessando de b para a
+		sleep(4);											// trava a tela por 4 segundos
+
+		printf("GORILA      |  CHEGOU        |  A\n"); // escreve na tela que gorila chegou em a
+		sleep(1);									   // trava a tela por 1 segundo
+
+		printf("--\nCORDA LIVRE\n--\n"); // escreve na tela que a corda esta livre
+		sleep(1);						 // trava a tela por 1 segundo
+
+		pthread_mutex_unlock(&lock_rope); // da unlock na corda
+		pthread_mutex_unlock(&lock_turn); // da unlock no turno
 	}
 	pthread_exit(0);
 }
@@ -150,9 +164,10 @@ int main(int argc, char *argv[])
 			}
 		}
 	}
-	pthread_t g_ab, g_ba;
-	pthread_create(&g_ab, NULL, &gorilla_ab, NULL);
-	pthread_create(&g_ba, NULL, &gorilla_ba, NULL);
+
+	pthread_t gorillas[2];
+	pthread_create(&gorillas[0], NULL, &gorilla_ab, NULL);
+	pthread_create(&gorillas[1], NULL, &gorilla_ba, NULL);
 
 	pthread_join(monkeys[0], NULL);
 	return 0;
