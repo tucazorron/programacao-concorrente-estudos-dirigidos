@@ -31,7 +31,7 @@ char *argv[];
     exit(1);
   }
 
-  cannibals = atoi(argv[1]); //número de canibais
+  cannibals = atoi(argv[1]); // numero de canibais
   portions = atoi(argv[2]);  // quantidade de porções que o cooker consegue preparar por vez
   printf("numero de canibais: %d\nquantidade de comida: %d\n----\n", cannibals, portions);
 
@@ -76,12 +76,13 @@ void *cannibal(void *pi)
     if (food == 0) // se acabar a comida, canibal avorda cozinheiro
     {
       printf("canibal: %d | acorda cozinheiro |\n", *(int *)(pi)); // canibal acorda cozinheiro
+      pthread_cond_signal(&cond_cooker);
     }
 
     pthread_mutex_unlock(&mutex); // da unlock nas threads
 
     printf("canibal: %d | come comida       |\n", *(int *)(pi)); // canibal come
-    sleep(10);
+    sleep(4);
   }
 }
 
@@ -99,7 +100,7 @@ void *cooker(int portions)
     }
 
     printf("cozinheiro | cozinha           |\n"); // cozinheiro cozinha
-    sleep(20);
+    sleep(4);
 
     food += portions; // aumenta a comida com mais porcoes
 
