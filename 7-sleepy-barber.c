@@ -32,7 +32,7 @@ void *barber_function(void *v)
     sem_wait(&new_client);
 
     // corta o cabelo
-    printf("barbeiro >> corta cabelo\n");
+    printf("+ barbeiro >> corta cabelo\n");
     sleep(1);
 
     // libera cliente apos cortar cabelo
