@@ -1,4 +1,4 @@
-# Programação Concorrente - Tarefas Semanais
+# Programação Concorrente - Estudos Dirigidos
 
 ### Semestre
 2021/1
