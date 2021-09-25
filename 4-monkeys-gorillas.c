@@ -3,14 +3,16 @@
 #include <unistd.h>
 #include <pthread.h>
 
-#define TRUE 1 // define true
-#define MA 10  // macacos de a para b
-#define MB 10  // macacos de b para a
+// numero de macacos de a para b
+#define MA 10
 
-pthread_mutex_t lock_ab = PTHREAD_MUTEX_INITIALIZER;   // mutex de a para b
-pthread_mutex_t lock_ba = PTHREAD_MUTEX_INITIALIZER;   // mutex de b para a
-pthread_mutex_t lock_rope = PTHREAD_MUTEX_INITIALIZER; // mutex da corda
-pthread_mutex_t lock_turn = PTHREAD_MUTEX_INITIALIZER; // mutex dos turnos
+// numero de macacos de b para a
+#define MB 10
+
+pthread_mutex_t lock_ab;   // mutex de a para b
+pthread_mutex_t lock_ba;   // mutex de b para a
+pthread_mutex_t lock_rope; // mutex da corda
+pthread_mutex_t lock_turn; // mutex dos turnos
 
 int ab = 0; // macacos atravessando de a para b
 int ba = 0; // macacos atravessando de b para a
@@ -19,7 +21,7 @@ void *monkey_ab(void *a)
 {
 	int i = *((int *)a); // recebe id do macaco
 
-	while (TRUE) // loop infinito
+	while (1) // loop infinito
 	{
 		pthread_mutex_lock(&lock_turn); // da lock no turno
 		pthread_mutex_lock(&lock_ab);	// da lock de a para b
@@ -58,7 +60,7 @@ void *monkey_ba(void *a)
 {
 	int i = *((int *)a); // recebe id do macaco
 
-	while (TRUE) // loop infinito
+	while (1) // loop infinito
 	{
 		pthread_mutex_lock(&lock_turn); // da lock no turno
 		pthread_mutex_lock(&lock_ba);	// da lock de b para a
@@ -95,7 +97,7 @@ void *monkey_ba(void *a)
 
 void *gorilla_ab(void *a)
 {
-	while (TRUE) // loop infinito
+	while (1) // loop infinito
 	{
 		pthread_mutex_lock(&lock_turn); // da lock no turno
 		pthread_mutex_lock(&lock_rope); // da lock na corda
@@ -117,7 +119,7 @@ void *gorilla_ab(void *a)
 
 void *gorilla_ba(void *a)
 {
-	while (TRUE) // loop infinito
+	while (1) // loop infinito
 	{
 		pthread_mutex_lock(&lock_turn); // da lock no turno
 		pthread_mutex_lock(&lock_rope); // da lock na corda
