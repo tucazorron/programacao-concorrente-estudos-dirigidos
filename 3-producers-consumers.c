@@ -1,127 +1,158 @@
+#include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <pthread.h>
 #include <unistd.h>
 
-#define PR 1
-#define CN 1
-#define N 5
+// numero de produtores
+#define number_of_producers 1
 
-pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;       // mutex geral
-pthread_cond_t cond_producer = PTHREAD_COND_INITIALIZER; // condicao de produtor
-pthread_cond_t cond_consumer = PTHREAD_COND_INITIALIZER; // condicao de consumidor
+// numero de consumidores
+#define number_of_consumers 1
 
-int counter = 0; // contador de produtor
-int adder = 0;   // contador de adicao
-int remover = 0; // contador de remocao
+// capacidade do estoque
+#define stock_capacity 5
 
-void *producer(void *id);
-void *consumer(void *id);
-void main(argc, argv) int argc;
-char *argv[];
+// cria mutex
+pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+
+// condicao de produtor
+pthread_cond_t producers_conditional = PTHREAD_COND_INITIALIZER;
+
+// condicao de consumidor
+pthread_cond_t consumers_conditional = PTHREAD_COND_INITIALIZER;
+
+// contador de produtor
+int counter = 0;
+
+// contador de adicao
+int adder = 0;
+
+// contador de remocao
+int remover = 0;
+
+void *producers_function(void *arg)
 {
+	int id = *(int *)arg;
+	while (1)
+	{
+		printf("produtor [%02d] >> produz item\n", id);
+		sleep(1);
 
-  int erro;
-  int i, n, m;
-  int *id;
+		// da lock
+		pthread_mutex_lock(&mutex);
 
-  pthread_t tid[PR];
+		// enquanto estoque estiver cheio
+		while (counter == stock_capacity)
+		{
+			printf("produtor [%02d] >> espera estoque esvaziar\n", id);
+			sleep(1);
 
-  for (i = 0; i < PR; i++)
-  {
-    id = (int *)malloc(sizeof(int));
-    *id = i;
-    erro = pthread_create(&tid[i], NULL, producer, (void *)(id));
+			// aguarda consumidores consumirem
+			pthread_cond_wait(&producers_conditional, &mutex);
+		}
 
-    if (erro)
-    {
-      printf("erro na criacao do thread %d\n", i);
-      exit(1);
-    }
-  }
+		printf("produtor [%02d] >> adiciona item >> posicao: [%02d]\n", id, adder);
+		sleep(1);
 
-  pthread_t tCid[CN];
+		// incrementa adicionador
+		adder++;
 
-  for (i = 0; i < CN; i++)
-  {
-    id = (int *)malloc(sizeof(int));
-    *id = i;
-    erro = pthread_create(&tCid[i], NULL, consumer, (void *)(id));
+		// se igualar ou ultrapassar limite, fica zerado
+		if (adder >= stock_capacity)
+		{
+			// zera adicionador
+			adder = 0;
+		}
 
-    if (erro)
-    {
-      printf("erro na criacao do thread %d\n", i);
-      exit(1);
-    }
-  }
+		// incrementa contador
+		counter++;
 
-  pthread_join(tid[0], NULL);
+		// se tiver apenas um produto disponivel
+		if (counter == 1)
+		{
+			// avisa consumidores que existem novos itens
+			pthread_cond_signal(&consumers_conditional);
+		}
+
+		// da unlock geral
+		pthread_mutex_unlock(&mutex);
+	}
+	pthread_exit(0);
 }
 
-void *producer(void *id)
+// funcao dos consumidores
+void *consumer(void *arg)
 {
-  while (1)
-  {
-    printf("produtor:   %d | produz item\n", *(int *)(id)); // produtor produz
-    sleep(1);
+	int id = *(int *)arg;
+	while (1)
+	{
+		// da lock geral
+		pthread_mutex_lock(&mutex);
 
-    pthread_mutex_lock(&mutex); // da lock geral
+		// se nao tem produtos disponiveis, consumidor espera
+		while (counter == 0)
+		{
 
-    while (counter == N) // se pratileira estiver cheia, aguarda diminuir
-    {
-      printf("produtor:   %d | espera\n", *(int *)(id)); // produtor espera
-      pthread_cond_wait(&cond_producer, &mutex);         // da um sinal para produtor aguardar
-    }
+			// consumidor espera
+			printf("consumidor: [%02d] >> espera\n", id);
 
-    printf("produtor:   %d | adiciona item | posicao: %d\n", *(int *)(id), adder); // produtor adiciona
+			// aguarda sinal dos produtores
+			pthread_cond_wait(&consumers_conditional, &mutex);
+		}
 
-    adder++;        // incrementa adicionador
-    if (adder >= N) // se igualar ou ultrapassar limite, fica zerado
-    {
-      adder = 0; // zera adicionador
-    }
+		// consumidor remove item
+		printf("consumidor: [%02d] >> remove item   >> posicao: [%02d]\n", id, remover);
 
-    counter++;        // incrementa contador
-    if (counter == 1) // se tiver apenas um produto disponivel
-    {
-      pthread_cond_signal(&cond_consumer); // avisa consumidores que existem novos itens
-    }
+		// incrementa removedor
+		remover++;
 
-    pthread_mutex_unlock(&mutex); // da unlock geral
-  }
-  pthread_exit(0);
+		// se igualar ou ultrapassar o limite, fica zerado
+		if (remover >= stock_capacity)
+		{
+			// zera removedor
+			remover = 0;
+		}
+
+		// desincrementa contador
+		counter--;
+
+		// se nao tiver mais produtos disponiveis, avisa produtor
+		if (counter == stock_capacity - 1)
+		{
+			// avisa produtor para produzir
+			pthread_cond_signal(&producers_conditional);
+		}
+
+		// da consumers_conditionallock geral
+		pthread_mutex_unlock(&mutex);
+
+		// consumidor consome item
+		printf("consumidor: [%02d] >> consome item  >> posicao: [%02d]\n", id, remover);
+		sleep(10);
+	}
+	pthread_exit(0);
 }
 
-void *consumer(void *id)
+void main(argc, argv)
 {
-  while (1)
-  {
-    pthread_mutex_lock(&mutex); // da lock geral
+	int i;
+	int *id;
 
-    while (counter == 0) // se nao tem produtos disponiveis, consumidor espera
-    {
-      printf("consumidor: %d | espera\n", *(int *)(id)); // consumidor espera
-      pthread_cond_wait(&cond_consumer, &mutex);         // aguarda sinal dos produtores
-    }
+	pthread_t producers[number_of_producers], consumers[number_of_consumers];
 
-    printf("consumidor: %d | remove item   | posicao: %d\n", *(int *)(id), remover); // consumidor remove item
+	for (i = 0; i < number_of_producers; i++)
+	{
+		id = (int *)malloc(sizeof(int));
+		*id = i;
+		pthread_create(&producers[i], NULL, producers_function, (void *)(id));
+	}
 
-    remover++;        // incrementa removedor
-    if (remover >= N) // se igualar ou ultrapassar o limite, fica zerado
-    {
-      remover = 0; // zera removedor
-    }
+	for (i = 0; i < number_of_consumers; i++)
+	{
+		id = (int *)malloc(sizeof(int));
+		*id = i;
+		pthread_create(&consumers[i], NULL, consumer, (void *)(id));
+	}
 
-    counter--;            // desincrementa contador
-    if (counter == N - 1) // se nao tiver mais produtos disponiveis, avisa produtor
-    {
-      pthread_cond_signal(&cond_producer); // avisa produtor para produzir
-    }
-
-    pthread_mutex_unlock(&mutex); // da unlock geral
-
-    printf("consumidor: %d | consome item  | posicao: %d\n", *(int *)(id), remover); // consumidor consome item
-    sleep(10);
-  }
-  pthread_exit(0);
+	pthread_join(producers[0], NULL);
 }
