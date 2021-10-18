@@ -24,20 +24,19 @@ void *matrix_sum(void *arg)
 
     // inicializa a soma parcial da thread como zero
     int partial_sum = 0;
-    
+
     int i;
     for (i = 0; i < size; i++)
     {
         // incrementa na soma parcial de cada thread o valor dentro da matriz
         partial_sum += matrix[id][i];
     }
-    
+
     // guarda dentro da array de somas o valor da soma parcial de cada thread
     sums_array[id] = partial_sum;
-    
-    
+
     printf("thread [%04d] >> soma parcial =  %d\n", id, partial_sum);
-    
+
     // espera na barreira ate todas as threads chegarem aqui
     pthread_barrier_wait(&barrier);
 
@@ -46,7 +45,7 @@ void *matrix_sum(void *arg)
     {
         // inicializa total como 0
         int total = 0;
-        
+
         for (i = 0; i < size; i++)
         {
             // incrementa total com os valores da array de somas
